@@ -33,11 +33,11 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
     private PhoneBook phoneBook;
 
     private JLabel clientLabel   = new JLabel("Reciever:");
-    private JLabel messageLabel  = new JLabel("Write:");
+    private JLabel messageLabel  = new JLabel("Command :");
     private JLabel phoneBookAreaLabel = new JLabel("Phone Book:");
     private JComboBox<ClientThread> clientMenu = new JComboBox<ClientThread>();
     private JTextField messageField = new JTextField(20);
-    private JTextArea  phoneBookArea  = new JTextArea(15,18);
+    private JTextArea  phoneBookArea  = new JTextArea(15,20);
     private JScrollPane scroll = new JScrollPane(phoneBookArea,
             ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
             ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -49,6 +49,8 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
 
     PhoneBookServer(){
         super("SERVER");
+        phoneBook = new PhoneBook();
+        phoneBook.LOAD("/Users/lukamitrovic/IdeaProjects/PhoneBook/src/phoneBookFile.txt");
         setSize(300,380);
         setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -63,10 +65,11 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
         phoneBookArea.setWrapStyleWord(true);
         panel.add(phoneBookAreaLabel);
         phoneBookArea.setEditable(false);
+        phoneBookArea.setText("--- Name ---- Number ----");
+        phoneBookArea.setText(phoneBook.getTableFormat());
         panel.add(scroll);
         setContentPane(panel);
         setVisible(true);
-        phoneBook = new PhoneBook();
         new Thread(this).start(); //Launching an additional thread
                                         // waiting for new clients
     }
