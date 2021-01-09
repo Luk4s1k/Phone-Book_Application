@@ -7,14 +7,14 @@
  */
 
 import java.io.*;
-import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class PhoneBook {
 
-    public ConcurrentHashMap<String, String> clientData = new ConcurrentHashMap<String,String>();
+    public ConcurrentHashMap<String, String> clientData = new ConcurrentHashMap<>();
 
 /*  ---------------- TESTING FORM ---------------------------------- */
 //    public static void main(String [] args){
@@ -35,6 +35,9 @@ public class PhoneBook {
 // Return 'OK' communicate if the file is loaded
 // Error is printed if the File wasn't found
 // Error can occur if file is empty
+    public PhoneBook(){
+        this.clientData.put("Book","1");
+    }
 
     public String LOAD(String filename){
         try{
@@ -42,16 +45,17 @@ public class PhoneBook {
             if(file.length() == 0){
                 return "ERROR FILE IS EMPTY";
             }
-            Scanner reader = new Scanner(file);
-            while (reader.hasNextLine()) {
-                String data = reader.nextLine();
-                // When separator appears String is split into 2 parts.
-                // First one (before the separator) is the String clientName.
-                // Second one (after the separator) is the String clientNumber.
-                int separatorIndex = data.indexOf(',');
-                clientData.put(data.substring(0,separatorIndex),data.substring(separatorIndex+1,data.length()));
+            try (Scanner reader = new Scanner(file)) {
+                while (reader.hasNextLine()) {
+                    String data = reader.nextLine();
+                    // When separator appears String is split into 2 parts.
+                    // First one (before the separator) is the String clientName.
+                    // Second one (after the separator) is the String clientNumber.
+                    int separatorIndex = data.indexOf(',');
+                    clientData.put(data.substring(0, separatorIndex), data.substring(separatorIndex + 1));
+                }
+                reader.close();
             }
-            reader.close();
         }catch (FileNotFoundException e) {
             e.printStackTrace();
             return "ERROR FILE NOT FOUND";
@@ -63,13 +67,13 @@ public class PhoneBook {
     public String SAVE(String filename){
         try{
             //File will be rewritten
-            BufferedWriter writer = new BufferedWriter(new FileWriter(filename, false));
-            Enumeration keys = this.clientData.keys();
-            while(keys.hasMoreElements()){
-                String keyToAppend = (String) keys.nextElement();
-                writer.append(keyToAppend + "," + this.clientData.get(keyToAppend) + '\n');
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename, false))) {
+                var keys = new AtomicReference<>(this.clientData.keys());
+                while (keys.get().hasMoreElements()) {
+                    String keyToAppend = keys.get().nextElement();
+                    writer.append(keyToAppend).append(",").append(this.clientData.get(keyToAppend)).append(String.valueOf('\n'));
+                }
             }
-            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
             return "ERROR CANNOT WRITE TO THE FILE";
@@ -104,22 +108,11 @@ public class PhoneBook {
 // The message contains a list of names of people remembered in the collection.
     public String LIST(){
         String nameList = "";
-        Enumeration keys = this.clientData.keys();
+        var keys = this.clientData.keys();
         while(keys.hasMoreElements()){
             nameList += keys.nextElement() + " ";
         }
         return "OK " + nameList;
-    }
-// Makes easier to print in the expose format
-// --- " Name " ----- " Number " ------
-    public String getTableFormat(){
-        String tableToPrint = "";
-        Enumeration keys = this.clientData.keys();
-        while(keys.hasMoreElements()){
-            String clientName = (String) keys.nextElement();
-            tableToPrint += "\t" + clientName + this.clientData.get(clientName) + '\n';
-        }
-        return tableToPrint.substring(0,tableToPrint.length() - 1);
     }
 
 }// End of class PhoneBook

@@ -61,7 +61,7 @@ public class PhoneBookClient extends JFrame implements ActionListener, Runnable 
             }
         });
         JPanel panel = new JPanel();
-        JLabel messageLabel = new JLabel("Console Input:");
+        JLabel messageLabel = new JLabel("Command:");
         JLabel textAreaLabel = new JLabel("Phone Book:");
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
@@ -74,9 +74,6 @@ public class PhoneBookClient extends JFrame implements ActionListener, Runnable 
         panel.add(scroll_bars);
         setContentPane(panel);
         phoneBook = new PhoneBook();
-        textArea.setText("## NAME ## NUMBER ##");
-        this.phoneBook.LOAD("/Users/lukamitrovic/IdeaProjects/PhoneBook/src/phoneBookFile.txt");
-        textArea.setText(this.phoneBook.LIST());
         setVisible(true);
         new Thread(this).start();
     }
@@ -94,12 +91,12 @@ public class PhoneBookClient extends JFrame implements ActionListener, Runnable 
 
     synchronized public void printReceivedMessage(String message){
         String tmp_text = textArea.getText();
-        textArea.setText(tmp_text + ">>> " + message + "\n");
+        textArea.setText(tmp_text + "--> " + message + "\n");
     }
 
     synchronized public void printSentMessage(String message){
         String text = textArea.getText();
-        textArea.setText(text + "<<< " + message + "\n");
+        textArea.setText(text + "<-- " + message + "\n");
     }
     
     @Override

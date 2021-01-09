@@ -30,11 +30,11 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
 
     static final int SERVER_PORT = 25000;
 
-    private PhoneBook phoneBook;
+    public PhoneBook phoneBook;
 
-    private JLabel clientLabel   = new JLabel("Reciever:");
+    private JLabel clientLabel   = new JLabel("Receiver:");
     private JLabel messageLabel  = new JLabel("Command :");
-    private JLabel phoneBookAreaLabel = new JLabel("Phone Book:");
+    private JLabel phoneBookAreaLabel = new JLabel("Dialog:");
     private JComboBox<ClientThread> clientMenu = new JComboBox<ClientThread>();
     private JTextField messageField = new JTextField(20);
     private JTextArea  phoneBookArea  = new JTextArea(15,20);
@@ -50,8 +50,7 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
     PhoneBookServer(){
         super("SERVER");
         phoneBook = new PhoneBook();
-        phoneBook.LOAD("/Users/lukamitrovic/IdeaProjects/PhoneBook/src/phoneBookFile.txt");
-        setSize(300,380);
+        setSize(300,420);
         setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         JPanel panel = new JPanel();
@@ -65,8 +64,6 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
         phoneBookArea.setWrapStyleWord(true);
         panel.add(phoneBookAreaLabel);
         phoneBookArea.setEditable(false);
-        phoneBookArea.setText("--- Name ---- Number ----");
-        phoneBookArea.setText(phoneBook.getTableFormat());
         panel.add(scroll);
         setContentPane(panel);
         setVisible(true);
@@ -76,61 +73,13 @@ public class PhoneBookServer extends JFrame implements ActionListener, Runnable 
 
     synchronized public void printReceivedMessage(ClientThread client, String message){
         String text = phoneBookArea.getText();
-        phoneBookArea.setText(client.getName() + " >>> " + message + "\n" + text);
+        phoneBookArea.setText(client.getName() + " --> " + message + "\n" + text);
     }
 
-    public String getCommandFromMessage(String message){
-        for(int i = 0; i < message.length();++i){
-            if(message.charAt(i) == ' '){
-                return message.substring(0,i);
-            }
-        }
-        return "ERROR";
-    }
-
-    public String getValueFromMessage(String message){
-        for(int i = 0; i < message.length();++i){
-            if(message.charAt(i) == ' '){
-                return message.substring(i+1,message.length());
-            }
-        }
-        return "ERROR";
-    }
-    public boolean singleValue(String value){
-        for(int i = 0; i < value.length();++i){
-            if(value.charAt(i) == ' '){
-                return false;
-            }
-        }
-        return true;
-    }
 
     synchronized public void printSentMessage(ClientThread client, String message){
         String text = phoneBookArea.getText();
-        String command = getCommandFromMessage(message);
-        String value = getValueFromMessage(message);
-        //GET COMMAND RECEIVED
-        if(command == "GET" && singleValue(value) ){
-            phoneBookArea.setText(phoneBook.GET(value));
-        //PUT COMMAND RECEIVED
-        }else if(command == "PUT" && !singleValue(value)){
-                int separator = value.indexOf(' ');
-                phoneBookArea.setText(phoneBook.PUT(
-                            value.substring(0,separator),
-                            value.substring(separator,value.length())));
-        //REPLACE COMMAND RECEIVED
-        }else if(command == "REPLACE" && !singleValue(value)){
-                int separator = value.indexOf(' ');
-                phoneBookArea.setText(phoneBook.REPLACE(
-                        value.substring(0,separator),
-                        value.substring(separator,value.length())));
-        //DELETE COMMAND RECEIVED
-        }else if (command == "DELETE" && singleValue(value)){
-            phoneBookArea.setText(phoneBook.DELETE(value));
-        //DELETE COMMAND RECEIVED
-        }else if (command == "LIST"){
-            phoneBookArea.setText(phoneBook.LIST());
-        }
+        phoneBookArea.setText(client.getName() + " <-- " + message + "\n" + text);
 
     }
 
@@ -207,6 +156,39 @@ class ClientThread implements Runnable {
                                          // for network communication management
     }
 
+//    public String getCommandFromMessage(String message){
+//        for(int i = 0; i < message.length();++i){
+//            if(message.charAt(i) == '\0'){
+//                return message.substring(0,i);
+//            }
+//        }
+//        return "ERROR";
+//    }
+
+/* ------------------------------------------------------------------------
+ *
+ *  Function getValueFromMessage extracts the argument part of the message
+ *
+ *  ------------------------------------------------------------------------
+ */
+    public String getValueFromMessage(String message){
+        for(int i = 0; i < message.length();i++){
+            if(message.charAt(i) == ' '){
+                return message.substring(i + 1,message.length());
+            }
+        }
+        return "ERROR";
+    }
+
+//    public boolean isSingleValue(String value){
+//        for(int i = 0; i < value.length() ;i++){
+//            if(value.charAt(i) == ' '){
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
+
     public String getName(){ return name; }
 
     public String toString(){ return name; }
@@ -236,9 +218,64 @@ class ClientThread implements Runnable {
             while(true){
                 message = (String)input.readObject();
                 myServer.printReceivedMessage(this,message);
-                if (message.equals("exit")){
+                String arg = getValueFromMessage(message);
+                // Action scenario for CLOSE command from client
+                if (message.equals("CLOSE") || message.equals("close")){
+                    // TODO:make all client removal
                     myServer.removeClient(this);
                     break;
+                }
+                // Action scenario for LOAD command from client
+                if(message.substring(0,4).equals("LOAD") || message.substring(0,4).equals("load")){
+                    String result = myServer.phoneBook.LOAD(arg);
+                    sendMessage(result);
+                    myServer.printSentMessage(this,result);
+                }
+                // Action scenario for LIST command from client
+                if(message.substring(0,4).equals("LIST") || message.substring(0,4).equals("list")){
+                    //TODO:Fix the closng bug shen calling list command
+                    String result = myServer.phoneBook.LIST();
+                    sendMessage(result);
+                    myServer.printSentMessage(this,result);
+                }
+                // Action scenario for SAVE command from client
+                if(message.substring(0,4).equals("SAVE") || message.substring(0,4).equals("save")){
+                    String result = myServer.phoneBook.SAVE(arg);
+                    sendMessage(result);
+                    myServer.printSentMessage(this,result);
+                }
+                // Action scenario for GET command from client
+                if(message.substring(0,3).equals("GET") || message.substring(0,3).equals("get")) {
+                    String result = myServer.phoneBook.GET(arg);
+                    sendMessage(result);
+                    myServer.printSentMessage(this, result);
+                }
+                // Action scenario for PUT command from client
+                // Note: PUT has 2 arguments so substring is used to parse them
+                if(message.substring(0,3).equals("PUT") || message.substring(0,3).equals("put")){
+                   String result = myServer.phoneBook.PUT(arg.substring(0,arg.indexOf(' ')),
+                                                          arg.substring(arg.indexOf(' '),arg.length()));
+                    sendMessage(result);
+                    myServer.printSentMessage(this, result);
+                }
+                // Action scenario for REPLACE command from client
+                // Note: REPLACE has 2 arguments so substring is used to parse them
+                if(message.substring(0,7).equals("REPLACE") || message.substring(0,7).equals("replace")){
+                    String result = myServer.phoneBook.REPLACE(arg.substring(0,arg.indexOf(' ')),
+                                                               arg.substring(arg.indexOf(' '),arg.length()));
+                    sendMessage(result);
+                    myServer.printSentMessage(this, result);
+                }
+                // Action scenario for DELETE command from client
+                if(message.substring(0,6).equals("DELETE") || message.substring(0,6).equals("delete")) {
+                    String result = myServer.phoneBook.DELETE(arg);
+                    sendMessage(result);
+                    myServer.printSentMessage(this, result);
+                }
+                // Action scenario for CLOSE command from client
+                if(message.substring(0,6).equals("CLOSE") || message.substring(0,6).equals("close")){
+                    //TODO:Check with all multiple client scenario
+                    myServer.removeClient(this);
                 }
             }
             socket.close();
